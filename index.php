@@ -3,6 +3,7 @@
 	<head profile="http://gmpg.org/xfn/11">
 		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 		<title>SEO EXTRACTOR</title>
+		<link rel="stylesheet" type="text/css" href="style.css" />
     </head>
     <body>
 <?php
@@ -82,12 +83,14 @@ if(isset($_POST['txt'])){
    echo '<a href="seoextractor.csv">Resultat en CSV</a>';
 }
 ?>
+<div id="wrapper">
 <h1>SEO EXTRACTOR</h1>
-<p>Collez votre liste d'url dans le champ texte ci-dessous et cliquez sur Go</p>
+<p>Paste your URL list on the following textarea and click on «Check It!»</p>
 <form  action="" method="post">
-	<textarea name="txt" style="width:500px;height:700px;"><?php echo $rt; ?></textarea>
-	<input type="submit" value="Go" />
+	<textarea name="txt" style="width:500px;height:700px;"><?php echo $rt; ?></textarea><br />
+	<input type="submit" value="Check It!" />
 </form>
+</div>
 </body>
 </html>
 
