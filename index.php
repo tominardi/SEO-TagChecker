@@ -46,6 +46,9 @@ function getUrl($url){
 if(isset($_POST['txt'])){
 	$tab = preg_split('#(\n)#',$_POST['txt']);
 	$results = array(array('url','status','redirect','title','h1','h2','h3','robots','keywords','description','charset'));
+	if($_POST['gaChecker']) $results[0][]='GA';
+	if($_POST['piwikChecker']) $results[0][]='Piwik';
+	
 	foreach($tab as $u){
 		$u = trim($u);
 		if($u != ''){
@@ -68,19 +71,36 @@ if(isset($_POST['txt'])){
 			$ch = split('charset=', $ch);
 			$ch = $ch[1];
 			$seo['charset'] = $ch;
+			
+			if($_POST['gaChecker']) {
+			    $seo['GA'] = 'none';
+			    if(strpos($html, '_gaq.push([\'_setAccount\',') !== FALSE OR
+			       strpos($html, 'new gweb.analytics.AutoTrack') !== FALSE OR
+			       strpos($html, 'pageTracker._trackPageview();') !== FALSE){
+				$seo['GA'] = 'OK';
+			    }
+			}
+			
+			if($_POST['piwikChecker']) {
+			    $seo['Piwik'] = 'none';
+			    if(strpos($html, 'piwikTracker.enableLinkTracking();')){
+				$seo['Piwik'] = 'OK';
+			    }
+			}
+			
 			$results[] = $seo;			
 		}
 	}
-	echo '<pre>';
-	print_r($results);
-	echo '</pre>';
+	$response .= '<pre>';
+	$response .= print_r($results, true);
+	$response .= '</pre>';
 	//header("Content-Type: text/csv");
 	$fp = fopen('seoextractor.csv', 'w');
     
     array_walk($results, '__outputCSV', $fp);
 
    fclose($fp);
-   echo '<a href="seoextractor.csv">Resultat en CSV</a>';
+   $response .= '<a href="seoextractor.csv">Resultat en CSV</a>';
 }
 ?>
 <div id="wrapper">
@@ -88,8 +108,11 @@ if(isset($_POST['txt'])){
 <p>Paste your URL list on the following textarea and click on «Check It!»</p>
 <form  action="" method="post">
 	<textarea name="txt" style="width:500px;height:700px;"><?php echo $rt; ?></textarea><br />
+	Check if Google Analytics is Enabled ? <input type="checkbox" name="gaChecker" /><br />
+	Check if Piwik is Enabled ? <input type="checkbox" name="piwikChecker" /><br />
 	<input type="submit" value="Check It!" />
 </form>
+<?php echo $response; ?>
 </div>
 </body>
 </html>

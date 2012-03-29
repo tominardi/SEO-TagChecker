@@ -13,3 +13,7 @@ body {
 h1 {
     border-bottom: solid 1px #bcc9da
 }
+pre {
+    width: 100;
+    overflow: auto;
+}
