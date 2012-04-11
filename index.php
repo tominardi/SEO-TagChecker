@@ -13,12 +13,14 @@ function getDomValue($path, $html){
 	@$dom->loadHTML($html);
 	$xp = new DOMXPath($dom);
 	$nodeList = $xp->query($path);
+	$output = Array();
 	foreach($nodeList as $domElement){
-		return $domElement->nodeValue;
+		$output[] = $domElement->nodeValue;
 	}
+	return $output;
 }
 
-function __outputCSV(&$vals, $key, $filehandler) {
+function __outputCSV($vals, $key, $filehandler) {
         fputcsv($filehandler, $vals, ';', '"');
 }
 
@@ -44,33 +46,36 @@ function getUrl($url){
 }
 
 if(isset($_POST['txt'])){
+        if($_POST['campagnName'] != '')
+            $campagnName = $_POST['campagnName'];
+	else
+	    $campagnName = 'default';
 	$tab = preg_split('#(\n)#',$_POST['txt']);
-	$results = array(array('url','status','redirect','title','h1','h2','h3','robots','keywords','description','charset'));
+	$results = array(array('url','source','support','mot clé','contenu','nom de la campagne','Google URL Builder','nb car'));
 	if($_POST['gaChecker']) $results[0][]='GA';
 	if($_POST['piwikChecker']) $results[0][]='Piwik';
 	
 	foreach($tab as $u){
 		$u = trim($u);
 		if($u != ''){
+		        $retour = Array();
 			$proc = getUrl($u);
 			//print_r($proc[1]);
 			$html = $proc[0];
 			$seo = array();		
 			$seo['url'] = $u;
-			$seo['status'] = $proc[1]['http_code'];
-			if($u != $proc[2]) $seo['redirect'] = $proc[2];
-			else  $seo['redirect'] = '';
 			$seo['title'] = getDomValue('//title', $html);
 			$seo['h1'] = getDomValue('//h1', $html);
 			$seo['h2'] = getDomValue('//h2', $html);
 			$seo['h3'] = getDomValue('//h3', $html);
+			$seo['h4'] = getDomValue('//h4', $html);
+			$seo['h5'] = getDomValue('//h5', $html);
+			$seo['h6'] = getDomValue('//h6', $html);
+			$seo['strong'] = getDomValue('//strong', $html);
+			$seo['a_rel_nofollow'] = getDomValue('//a[rel=nofollow]', $html);
 			$seo['robots'] = getDomValue('//meta[@name="robots"]/@content', $html);
 			$seo['keywords'] = getDomValue('//meta[@name="keywords"]/@content', $html);
 			$seo['description'] = getDomValue('//meta[@name="description"]/@content', $html);
-			$ch = getDomValue('//meta[contains(@content,"charset")]/@content', $html);//gere le bon encodage
-			$ch = split('charset=', $ch);
-			$ch = $ch[1];
-			$seo['charset'] = $ch;
 			
 			if($_POST['gaChecker']) {
 			    $seo['GA'] = 'none';
@@ -87,30 +92,53 @@ if(isset($_POST['txt'])){
 				$seo['Piwik'] = 'OK';
 			    }
 			}
-			
-			$results[] = $seo;			
+			$recolte = Array('title', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'robots', 'keywords', 'description', 'strong', 'a_rel_nofollow' );
+			foreach($recolte as $key) {
+			foreach($seo[$key] as $value) {
+			    $toAdd = Array(
+				$seo['url'],
+				'direct',
+				'none',
+				preg_replace('`( | |&nbsp;)+`i', ' ', preg_replace("(\r\n|\n|\r)",'',$value)),
+				$key,
+				$campagnName,
+				$seo['url'].'?utm_source=direct&utm_medium=seo&utm_campagn='.urlencode($campagnName).'&utm_term='.urlencode(preg_replace('`( | |&nbsp;)+`i', ' ', preg_replace("(\r\n|\n|\r)",'',$value))).'&utm_content='.urlencode($key),
+				''
+				);
+			    if ($_POST['gaChecker']) {
+				$toAdd[] = $seo['GA'];
+			    }
+			    if ($_POST['piwikChecker']) {
+				$toAdd[] = $seo['Piwik'];
+			    }
+			    $retour[] = $toAdd;
+			}
+			}
+			foreach($retour as $push) {
+			    $results[] = $push;
+			}
 		}
 	}
+        $response .= '<a href="export/'.$campagnName.'.csv">Resultat en CSV</a>';
 	$response .= '<pre>';
 	$response .= print_r($results, true);
 	$response .= '</pre>';
 	//header("Content-Type: text/csv");
-	$fp = fopen('seoextractor.csv', 'w');
-    
+	$fp = fopen('export/'.$campagnName.'.csv', 'w');
     array_walk($results, '__outputCSV', $fp);
 
    fclose($fp);
-   $response .= '<a href="seoextractor.csv">Resultat en CSV</a>';
 }
 ?>
 <div id="wrapper">
 <h1>SEO EXTRACTOR</h1>
 <p>Paste your URL list on the following textarea and click on «Check It!»</p>
 <form  action="" method="post">
-	<textarea name="txt" style="width:500px;height:700px;"><?php echo $rt; ?></textarea><br />
-	Check if Google Analytics is Enabled ? <input type="checkbox" name="gaChecker" /><br />
-	Check if Piwik is Enabled ? <input type="checkbox" name="piwikChecker" /><br />
-	<input type="submit" value="Check It!" />
+    <label for="campagnName">Nom de la campagne : </label><input type="text" name="campagnName" id="campagnName" value="<?php echo $campagnName; ?>" /><br />
+    <textarea name="txt" style="width:500px;height:700px;"><?php echo $_POST['txt']; ?></textarea><br />
+    Check if Google Analytics is Enabled ? <input type="checkbox" name="gaChecker" /><br />
+    Check if Piwik is Enabled ? <input type="checkbox" name="piwikChecker" /><br />
+    <input type="submit" value="Check It!" />
 </form>
 <?php echo $response; ?>
 </div>
