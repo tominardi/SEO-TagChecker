@@ -20,6 +20,18 @@ function getDomValue($path, $html){
 	return $output;
 }
 
+function getDomAttribute($path, $html, $attr){
+	$dom = new DOMDocument();
+	@$dom->loadHTML($html);
+	$xp = new DOMXPath($dom);
+	$nodeList = $xp->query($path);
+	$output = Array();
+	foreach($nodeList as $domElement){
+		$output[] = $domElement->getAttribute($attr);
+	}
+	return $output;
+}
+
 function __outputCSV($vals, $key, $filehandler) {
         fputcsv($filehandler, $vals, ';', '"');
 }
@@ -76,6 +88,7 @@ if(isset($_POST['txt'])){
 			$seo['robots'] = getDomValue('//meta[@name="robots"]/@content', $html);
 			$seo['keywords'] = getDomValue('//meta[@name="keywords"]/@content', $html);
 			$seo['description'] = getDomValue('//meta[@name="description"]/@content', $html);
+			$seo['alt_img'] = getDomAttribute('//img', $html, 'alt');
 			
 			if($_POST['gaChecker']) {
 			    $seo['GA'] = 'none';
@@ -92,7 +105,20 @@ if(isset($_POST['txt'])){
 				$seo['Piwik'] = 'OK';
 			    }
 			}
-			$recolte = Array('title', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'robots', 'keywords', 'description', 'strong', 'a_rel_nofollow' );
+			$recolte = Array();
+			if ($_POST['title']) $recolte[] = 'title';
+			if ($_POST['h1']) $recolte[] = 'h1';
+			if ($_POST['h2']) $recolte[] = 'h2';
+			if ($_POST['h3']) $recolte[] = 'h3';
+			if ($_POST['h4']) $recolte[] = 'h4';
+			if ($_POST['h5']) $recolte[] = 'h5';
+			if ($_POST['h6']) $recolte[] = 'h6';
+			if ($_POST['robots']) $recolte[] = 'robots';
+			if ($_POST['keywords']) $recolte[] = 'keywords';
+			if ($_POST['description']) $recolte[] = 'description';
+			if ($_POST['strong']) $recolte[] = 'strong';
+			if ($_POST['a_rel_nofollow']) $recolte[] = 'a_rel_nofollow';
+			if ($_POST['alt_img']) $recolte[] = 'alt_img';
 			foreach($recolte as $key) {
 			foreach($seo[$key] as $value) {
 			    $toAdd = Array(
@@ -133,7 +159,24 @@ if(isset($_POST['txt'])){
 <div id="wrapper">
 <h1>SEO EXTRACTOR</h1>
 <p>Paste your URL list on the following textarea and click on «Check It!»</p>
+
 <form  action="" method="post">
+<p>Select element to add in your report :</p>
+<p>
+    <label for="title">title : </label> <input type="checkbox" name="title" id="title"  checked="checked" />
+    <label for="h1">h1 : </label> <input type="checkbox" name="h1" id="h1"  checked="checked" />
+    <label for="h2">h2 : </label> <input type="checkbox" name="h2" id="h2"  checked="checked" />
+    <label for="h3">h3 : </label> <input type="checkbox" name="h3" id="h3"  checked="checked" />
+    <label for="h4">h4 : </label> <input type="checkbox" name="h4" id="h4"  checked="checked" />
+    <label for="h5">h5 : </label> <input type="checkbox" name="h5" id="h5"  checked="checked" />
+    <label for="h6">h6 : </label> <input type="checkbox" name="h6" id="h6"  checked="checked" />
+    <label for="robots">robots : </label> <input type="checkbox" name="robots" id="robots"  checked="checked" />
+    <label for="keywords">keywords : </label> <input type="checkbox" name="keywords" id="keywords"  checked="checked" />
+    <label for="description">description : </label> <input type="checkbox" name="description" id="description"  checked="checked" />
+    <label for="strong">strong : </label> <input type="checkbox" name="strong"  id="strong" checked="checked" />
+    <label for="a_rel_nofollow">a_rel_nofollow : </label> <input type="checkbox" name="a_rel_nofollow" id="a_rel_nofollow"  checked="checked" />
+    <label for="alt_img">alt_img : </label> <input type="checkbox" name="alt_img"  id="alt_img" checked="checked" />
+</p>
     <label for="campagnName">Nom de la campagne : </label><input type="text" name="campagnName" id="campagnName" value="<?php echo $campagnName; ?>" /><br />
     <textarea name="txt" style="width:500px;height:700px;"><?php echo $_POST['txt']; ?></textarea><br />
     Check if Google Analytics is Enabled ? <input type="checkbox" name="gaChecker" /><br />
