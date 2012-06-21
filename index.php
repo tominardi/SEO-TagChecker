@@ -4,6 +4,8 @@
 		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 		<title>SEO EXTRACTOR</title>
 		<link rel="stylesheet" type="text/css" href="style.css" />
+        <script type="text/javascript" src="jquery-1.4.4.min.js"></script>
+        <script type="text/javascript" src="app.main.js"></script>
     </head>
     <body>
 <?php
@@ -62,6 +64,49 @@ if(isset($_POST['txt'])){
             $campagnName = $_POST['campagnName'];
 	else
 	    $campagnName = 'default';
+	    
+	    if($_POST['engines-only']) {
+	        $tab = preg_split('#(\n)#',$_POST['txt']);
+	        $results = array(array('url'));
+	        if($_POST['gaChecker']) $results[0][]='GA';
+	        if($_POST['piwikChecker']) $results[0][]='Piwik';
+	        foreach($tab as $u) {
+	            if($u != '') {
+	                $retour = Array();
+			        $proc = getUrl($u);
+			        $html = $proc[0];
+			        $retour[] = $u;
+			        if($_POST['gaChecker']) {
+        			    $retour['GA'] = 'none';
+		        	    if(strpos($html, '_gaq.push([\'_setAccount\',') !== FALSE OR
+		        	       strpos($html, 'new gweb.analytics.AutoTrack') !== FALSE OR
+		        	       strpos($html, 'pageTracker._trackPageview();') !== FALSE) {
+		        		$retour['GA'] = 'OK';
+		       	        }
+			        }
+			
+			        if($_POST['piwikChecker']) {
+			            $retour['Piwik'] = 'none';
+			            if(strpos($html, 'piwikTracker.enableLinkTracking();')) {
+        		    		$retour['Piwik'] = 'OK';
+		    	        }
+			        }
+			        //Ajout des lignes
+			        $results[] = $retour;
+	            }
+	        }
+	        //création du fichier
+	        $response .= '<a href="export/'.$campagnName.'_engines.csv">Resultat en CSV</a>';
+	        $response .= '<pre>';
+    	    $response .= print_r($results, true);
+	        $response .= '</pre>';
+	        //header("Content-Type: text/csv");
+	        $fp = fopen('export/'.$campagnName.'_engines.csv', 'w');
+            array_walk($results, '__outputCSV', $fp);
+
+            fclose($fp);
+	    }
+	    else {
 	$tab = preg_split('#(\n)#',$_POST['txt']);
 	$results = array(array('url','source','support','mot clé','contenu','nom de la campagne','Google URL Builder','nb car'));
 	if($_POST['gaChecker']) $results[0][]='GA';
@@ -146,14 +191,15 @@ if(isset($_POST['txt'])){
 		}
 	}
         $response .= '<a href="export/'.$campagnName.'.csv">Resultat en CSV</a>';
-	$response .= '<pre>';
-	$response .= print_r($results, true);
-	$response .= '</pre>';
-	//header("Content-Type: text/csv");
-	$fp = fopen('export/'.$campagnName.'.csv', 'w');
-    array_walk($results, '__outputCSV', $fp);
+	    $response .= '<pre>';
+	    $response .= print_r($results, true);
+	    $response .= '</pre>';
+	    //header("Content-Type: text/csv");
+	    $fp = fopen('export/'.$campagnName.'.csv', 'w');
+        array_walk($results, '__outputCSV', $fp);
 
-   fclose($fp);
+        fclose($fp);
+        }
 }
 ?>
 <div id="wrapper">
@@ -161,26 +207,27 @@ if(isset($_POST['txt'])){
 <p>Paste your URL list on the following textarea and click on «Check It!»</p>
 
 <form  action="" method="post">
-<p>Select element to add in your report :</p>
+<p class="ui-helper-clearfix"><span class="click-me"><label for="engines-only">Only check Search Engines : </label> <input type="checkbox" name="engines-only" id="engines-only" /></span></p>
 <p>
-    <label for="title">title : </label> <input type="checkbox" name="title" id="title"  checked="checked" />
-    <label for="h1">h1 : </label> <input type="checkbox" name="h1" id="h1"  checked="checked" />
-    <label for="h2">h2 : </label> <input type="checkbox" name="h2" id="h2"  checked="checked" />
-    <label for="h3">h3 : </label> <input type="checkbox" name="h3" id="h3"  checked="checked" />
-    <label for="h4">h4 : </label> <input type="checkbox" name="h4" id="h4"  checked="checked" />
-    <label for="h5">h5 : </label> <input type="checkbox" name="h5" id="h5"  checked="checked" />
-    <label for="h6">h6 : </label> <input type="checkbox" name="h6" id="h6"  checked="checked" />
-    <label for="robots">robots : </label> <input type="checkbox" name="robots" id="robots"  checked="checked" />
-    <label for="keywords">keywords : </label> <input type="checkbox" name="keywords" id="keywords"  checked="checked" />
-    <label for="description">description : </label> <input type="checkbox" name="description" id="description"  checked="checked" />
-    <label for="strong">strong : </label> <input type="checkbox" name="strong"  id="strong" checked="checked" />
-    <label for="a_rel_nofollow">a_rel_nofollow : </label> <input type="checkbox" name="a_rel_nofollow" id="a_rel_nofollow"  checked="checked" />
-    <label for="alt_img">alt_img : </label> <input type="checkbox" name="alt_img"  id="alt_img" checked="checked" />
+    Check if Google Analytics is Enabled ? <input type="checkbox" name="gaChecker" /><br />
+    Check if Piwik is Enabled ? <input type="checkbox" name="piwikChecker" /></p>
+<p class="ui-helper-clearfix" id="selectors">Select element to add in your report :<br />
+    <span class="click-me"><label for="title">title : </label> <input type="checkbox" name="title" id="title"  checked="checked" /></span>
+    <span class="click-me"><label for="h1">h1 : </label> <input type="checkbox" name="h1" id="h1"  checked="checked" /></span>
+    <span class="click-me"><label for="h2">h2 : </label> <input type="checkbox" name="h2" id="h2"  checked="checked" /></span>
+    <span class="click-me"><label for="h3">h3 : </label> <input type="checkbox" name="h3" id="h3"  checked="checked" /></span>
+    <span class="click-me"><label for="h4">h4 : </label> <input type="checkbox" name="h4" id="h4"  checked="checked" /></span>
+    <span class="click-me"><label for="h5">h5 : </label> <input type="checkbox" name="h5" id="h5"  checked="checked" /></span>
+    <span class="click-me"><label for="h6">h6 : </label> <input type="checkbox" name="h6" id="h6"  checked="checked" /></span>
+    <span class="click-me"><label for="robots">robots : </label> <input type="checkbox" name="robots" id="robots"  checked="checked" /></span>
+    <span class="click-me"><label for="keywords">keywords : </label> <input type="checkbox" name="keywords" id="keywords"  checked="checked" /></span>
+    <span class="click-me"><label for="description">description : </label> <input type="checkbox" name="description" id="description"  checked="checked" /></span>
+    <span class="click-me"><label for="strong">strong : </label> <input type="checkbox" name="strong"  id="strong" checked="checked" /></span>
+    <span class="click-me"><label for="a_rel_nofollow">a_rel_nofollow : </label> <input type="checkbox" name="a_rel_nofollow" id="a_rel_nofollow"  checked="checked" /></span>
+    <span class="click-me"><label for="alt_img">alt_img : </label> <input type="checkbox" name="alt_img"  id="alt_img" checked="checked" /></span>
 </p>
     <label for="campagnName">Nom de la campagne : </label><input type="text" name="campagnName" id="campagnName" value="<?php echo $campagnName; ?>" /><br />
-    <textarea name="txt" style="width:500px;height:700px;"><?php echo $_POST['txt']; ?></textarea><br />
-    Check if Google Analytics is Enabled ? <input type="checkbox" name="gaChecker" /><br />
-    Check if Piwik is Enabled ? <input type="checkbox" name="piwikChecker" /><br />
+    <textarea name="txt" style="width:500px;height:700px;"><?php echo $_POST['txt']; ?></textarea>
     <input type="submit" value="Check It!" />
 </form>
 <?php echo $response; ?>
